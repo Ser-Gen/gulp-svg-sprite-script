@@ -1,7 +1,7 @@
 {
   "name": "gulp-svg-sprite-script",
   "version": "1.0.0",
-  "description": "",
+  "description": "Gulp plugin to pack separate svg icons to cachable javascript",
   "main": "index.js",
   "keywords": [
     "gulpplugin",
@@ -14,7 +14,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/Ser-Gen/gulp-svg-sprite-script.git"
   },
   "dependencies": {
     "gulp-util": "~2.2.10",
