@@ -12,15 +12,11 @@
     "name": "Ser-Gen"
   },
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Ser-Gen/gulp-svg-sprite-script.git"
-  },
+  "repository": "Ser-Gen/gulp-svg-sprite-script",
   "dependencies": {
     "gulp-util": "~2.2.10",
     "cheerio": "^0.18.0",
     "svgo": "^0.5.0",
-    "vinyl": "^0.4.6",
     "through2": "^0.6.3"
   }
 }

@@ -1,7 +1,8 @@
-var through2 = require('through2');
-var gutil = require('gulp-util');
 var fs = require('fs');
 var path = require('path');
+
+var gutil = require('gulp-util');
+var through2 = require('through2');
 var cheerio = require('cheerio');
 
 var SVGO = require('svgo');
