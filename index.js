@@ -14,28 +14,35 @@ var svgo = new SVGO({
 
 var PluginError = gutil.PluginError;
 
-const PLUGIN_NAME = 'gulp-svg-sprite-script';
-
-var filePath = 'node_modules/'+ PLUGIN_NAME + '/';
-
 function svgSpriteScript (opts) {
-  var isEmpty = true
-  var fileName
-  var inlineSvg = true
-  var ids = {}
+
+  const PLUGIN_NAME = 'gulp-svg-sprite-script';
+
+  if (!opts) {
+    var opts = {};
+  };
+
+  var filePath = 'node_modules/'+ PLUGIN_NAME + '/';
+  opts.js = opts.js || filePath +'icons-tmpl.js';
+  opts.css = opts.css || filePath +'icons-tmpl.css';
+
+  var isEmpty = true;
+  var fileName;
+  var inlineSvg = true;
+  var ids = {};
 
   var resultSvg = '<svg xmlns="http://www.w3.org/2000/svg" />';
 
-  var $ = cheerio.load(resultSvg, { xmlMode: true })
-  var $combinedSvg = $('svg')
+  var $ = cheerio.load(resultSvg, { xmlMode: true });
+  var $combinedSvg = $('svg');
 
   var stream = through2.obj(
 
     function transform (file, encoding, cb) {
 
       if (file.isStream()) {
-        return cb(new gutil.PluginError(PLUGIN_NAME, 'Streams are not supported!'))
-      }
+        return cb(new gutil.PluginError(PLUGIN_NAME, 'Streams are not supported!'));
+      };
 
       file.path = 'icon-'+ path.basename(file.path);
 
@@ -44,41 +51,41 @@ function svgSpriteScript (opts) {
       });
 
       if (!file.cheerio) {
-        file.cheerio = cheerio.load(file.contents.toString(), { xmlMode: true })
+        file.cheerio = cheerio.load(file.contents.toString(), { xmlMode: true });
       }
 
-      var $svg = file.cheerio('svg')
-      var idAttr = path.basename(file.relative, path.extname(file.relative))
-      var viewBoxAttr = $svg.attr('viewBox')
-      var $symbol = $('<symbol/>')
+      var $svg = file.cheerio('svg');
+      var idAttr = path.basename(file.relative, path.extname(file.relative));
+      var viewBoxAttr = $svg.attr('viewBox');
+      var $symbol = $('<symbol/>');
 
       if (idAttr in ids) {
-        return cb(new gutil.PluginError(PLUGIN_NAME, 'File name should be unique: ' + idAttr))
-      }
+        return cb(new gutil.PluginError(PLUGIN_NAME, 'File name should be unique: ' + idAttr));
+      };
 
-      ids[idAttr] = true
+      ids[idAttr] = true;
 
       if (!fileName) {
-        fileName = path.basename(file.base)
+        fileName = path.basename(file.base);
         if (fileName === '.' || !fileName) {
-          fileName = 'icon.svg'
+          fileName = 'icon.svg';
         } else {
-          fileName = fileName.split(path.sep).shift() + '.svg'
-        }
-      }
+          fileName = fileName.split(path.sep).shift() + '.svg';
+        };
+      };
 
       if (file && isEmpty) {
-        isEmpty = false
-      }
+        isEmpty = false;
+      };
 
-      $symbol.attr('id', idAttr)
+      $symbol.attr('id', idAttr);
       if (viewBoxAttr) {
-        $symbol.attr('viewBox', viewBoxAttr)
-      }
+        $symbol.attr('viewBox', viewBoxAttr);
+      };
 
-      $symbol.append($svg.contents())
-      $combinedSvg.append($symbol)
-      cb()
+      $symbol.append($svg.contents());
+      $combinedSvg.append($symbol);
+      cb();
     },
     function flush (cb) {
       if (isEmpty) return cb();
@@ -99,7 +106,25 @@ function svgSpriteScript (opts) {
       file.path = 'icons.svg';
       file.contents = new Buffer(svgContent);
 
-      fs.readFile(filePath +'icons-tmpl.js', function (err, data)
+
+      var dataPreview =
+      '<!DOCTYPE html>'+
+        '<html>'+
+          '<head>'+
+            '<meta charset="UTF-8">'+
+            '<title>Icons preview</title>'+
+            '<script src="icons.js"></script>'+
+            '<style>html {font-family: sans-serif;} .Preview {display: inline-block; margin: 1em; text-align: center; vertical-align: top;}</style>'+
+          '</head>'+
+          '<body>';
+
+      for (var id in ids) {
+        dataPreview += '<div class="Preview"><div data-icon="'+ id.replace('icon-', '') +'"></div><div class="Preview__label">'+ id.replace('icon-', '') +'</div></div>';
+      };
+      dataPreview += '</body></html>';
+
+
+      fs.readFile(opts.js, function (err, dataScript)
       {
         if (err) {
           throw err;
@@ -117,10 +142,10 @@ function svgSpriteScript (opts) {
           svg.push("'" + svgContent.substr(i * LINE_LENGTH, LINE_LENGTH) + "'");
         };
 
-        data = data.toString();
-        data = data.replace(/%SVG_SPRITE%/, svg.join('+\n'));
+        dataScript = dataScript.toString();
+        dataScript = dataScript.replace(/%SVG_SPRITE%/, svg.join('+\n'));
 
-        fs.readFile(filePath +'icons-tmpl.css', function(err, dataStyle)
+        fs.readFile(opts.css, function(err, dataStyle)
         {
           if (err) {
             throw err;
@@ -142,11 +167,16 @@ function svgSpriteScript (opts) {
             styles.push("'" + dataStyle.substr(i * LINE_LENGTH, LINE_LENGTH) + "'");
           };
 
-          data = data.replace(/%STYLE%/, styles.join('+\n'));
+          dataScript = dataScript.replace(/%STYLE%/, styles.join('+\n'));
+
+          stream.push(new gutil.File({
+            path: 'icons.html',
+            contents: new Buffer(dataPreview)
+          }));
 
           stream.push(new gutil.File({
             path: 'icons.js',
-            contents: new Buffer(data)
+            contents: new Buffer(dataScript)
           }));
 
           file.cheerio = $;
