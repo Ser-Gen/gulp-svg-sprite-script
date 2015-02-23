@@ -1,9 +1,10 @@
 var fs = require('fs');
 var path = require('path');
 
-var gutil = require('gulp-util');
 var through2 = require('through2');
 var cheerio = require('cheerio');
+var gutil = require('gulp-util');
+var PluginError = gutil.PluginError;
 
 var SVGO = require('svgo');
 var svgo = new SVGO({
@@ -12,36 +13,33 @@ var svgo = new SVGO({
   }]
 });
 
-var PluginError = gutil.PluginError;
 
 function svgSpriteScript (opts) {
 
   const PLUGIN_NAME = 'gulp-svg-sprite-script';
+  const FILES_NAME = 'icons';
+  const LINE_LENGTH = 60;
+
+  var filePath = 'node_modules/'+ PLUGIN_NAME + '/';
 
   if (!opts) {
     var opts = {};
   };
 
-  var filePath = 'node_modules/'+ PLUGIN_NAME + '/';
-  opts.js = opts.js || filePath +'icons-tmpl.js';
-  opts.css = opts.css || filePath +'icons-tmpl.css';
+  opts.cssTmpl = opts.cssTmpl || filePath +'icons-tmpl.css';
+  opts.jsTmpl = opts.jsTmpl || filePath +'icons-tmpl.js';
 
-  var isEmpty = true;
-  var fileName;
-  var inlineSvg = true;
   var ids = {};
 
-  var resultSvg = '<svg xmlns="http://www.w3.org/2000/svg" />';
-
-  var $ = cheerio.load(resultSvg, { xmlMode: true });
-  var $combinedSvg = $('svg');
+  var $ = cheerio.load('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: none" />', { xmlMode: true });
+  var combinedSvg = $('svg');
 
   var stream = through2.obj(
 
     function transform (file, encoding, cb) {
 
       if (file.isStream()) {
-        return cb(new gutil.PluginError(PLUGIN_NAME, 'Streams are not supported!'));
+        return cb(new PluginError(PLUGIN_NAME, 'Streams are not supported!'));
       };
 
       file.path = 'icon-'+ path.basename(file.path);
@@ -52,140 +50,133 @@ function svgSpriteScript (opts) {
 
       if (!file.cheerio) {
         file.cheerio = cheerio.load(file.contents.toString(), { xmlMode: true });
-      }
+      };
 
-      var $svg = file.cheerio('svg');
+      var svg = file.cheerio('svg');
       var idAttr = path.basename(file.relative, path.extname(file.relative));
-      var viewBoxAttr = $svg.attr('viewBox');
-      var $symbol = $('<symbol/>');
+      var viewBoxAttr = svg.attr('viewBox');
+      var symbol = $('<symbol/>');
 
       if (idAttr in ids) {
-        return cb(new gutil.PluginError(PLUGIN_NAME, 'File name should be unique: ' + idAttr));
+        return cb(new PluginError(PLUGIN_NAME, 'File name should be unique: ' + idAttr));
       };
 
       ids[idAttr] = true;
 
-      if (!fileName) {
-        fileName = path.basename(file.base);
-        if (fileName === '.' || !fileName) {
-          fileName = 'icon.svg';
-        } else {
-          fileName = fileName.split(path.sep).shift() + '.svg';
-        };
-      };
-
-      if (file && isEmpty) {
-        isEmpty = false;
-      };
-
-      $symbol.attr('id', idAttr);
+      symbol.attr('id', idAttr);
+      
       if (viewBoxAttr) {
-        $symbol.attr('viewBox', viewBoxAttr);
+        symbol.attr('viewBox', viewBoxAttr);
       };
 
-      $symbol.append($svg.contents());
-      $combinedSvg.append($symbol);
+      symbol.append(svg.contents());
+      combinedSvg.append(symbol);
       cb();
     },
+
     function flush (cb) {
-      if (isEmpty) return cb();
-
-      var svgContent = $.xml();
-      var file = new gutil.File({
-        path: fileName,
-        contents: new Buffer(svgContent)
+      var svg = $.html();
+      var sprite = new gutil.File({
+        path: FILES_NAME +'.svg',
+        contents: new Buffer(svg)
       });
-      var cheer = cheerio.load(svgContent);
 
-      $('svg').attr({
-        'xmlns:xlink': 'http://www.w3.org/1999/xlink',
-        'style': 'display: none'
-      });
-      svgContent = $.html();
-
-      file.path = 'icons.svg';
-      file.contents = new Buffer(svgContent);
-
-
-      var dataPreview =
-      '<!DOCTYPE html>'+
-        '<html>'+
-          '<head>'+
-            '<meta charset="UTF-8">'+
-            '<title>Icons preview</title>'+
-            '<script src="icons.js"></script>'+
-            '<style>html {font-family: sans-serif;} .Preview {display: inline-block; margin: 1em; text-align: center; vertical-align: top;}</style>'+
-          '</head>'+
-          '<body>';
-
-      for (var id in ids) {
-        dataPreview += '<div class="Preview"><div data-icon="'+ id.replace('icon-', '') +'"></div><div class="Preview__label">'+ id.replace('icon-', '') +'</div></div>';
-      };
-      dataPreview += '</body></html>';
-
-
-      fs.readFile(opts.js, function (err, dataScript)
+      fs.readFile(opts.jsTmpl, function (err, script)
       {
         if (err) {
           throw err;
         };
 
-        var _this = this;
-        var LINE_LENGTH = 60, svg = [], i, l;
+        script = script.toString();
+        script = script.replace(/%SVG_SPRITE%/, svgPrepare(svg));
 
-        svgContent = svgContent.replace(/'/g, "\\'");
-        svgContent = svgContent.replace(/>\s+</g, "><").trim();
-        l = Math.ceil(svgContent.length / LINE_LENGTH);
-
-        for (i = 0; i < l; i++)
-        {
-          svg.push("'" + svgContent.substr(i * LINE_LENGTH, LINE_LENGTH) + "'");
-        };
-
-        dataScript = dataScript.toString();
-        dataScript = dataScript.replace(/%SVG_SPRITE%/, svg.join('+\n'));
-
-        fs.readFile(opts.css, function(err, dataStyle)
+        fs.readFile(opts.cssTmpl, function (err, style)
         {
           if (err) {
             throw err;
           };
-          dataStyle = dataStyle.toString();
 
+          style = style.toString();
+          script = script.replace(/%STYLE%/, stylesPrepare(style));
 
-          var LINE_LENGTH = 60, styles = [], i, l;
-
-          dataStyle = '<style>'+ dataStyle +'</style>';
-          dataStyle = dataStyle.replace(/\n/g, "");
-          dataStyle = dataStyle.replace(/\s+/g, " ");
-          dataStyle = dataStyle.replace(/'/g, "\\'");
-          dataStyle = dataStyle.replace(/>\s+</g, "><").trim();
-          l = Math.ceil(dataStyle.length / LINE_LENGTH);
-
-          for (i = 0; i < l; i++)
-          {
-            styles.push("'" + dataStyle.substr(i * LINE_LENGTH, LINE_LENGTH) + "'");
-          };
-
-          dataScript = dataScript.replace(/%STYLE%/, styles.join('+\n'));
-
-          stream.push(new gutil.File({
-            path: 'icons.html',
-            contents: new Buffer(dataPreview)
-          }));
-
-          stream.push(new gutil.File({
-            path: 'icons.js',
-            contents: new Buffer(dataScript)
-          }));
-
-          file.cheerio = $;
-          stream.push(file);
-          cb();
+          finish(sprite, script, cb);
         });
       });
     }
   );
+
+	// финальное создание файлов и окончание работы задачи
+	function finish(sprite, script, cb) {
+    stream.push(new gutil.File({
+      path: FILES_NAME +'.html',
+      contents: new Buffer(demoPrepare(ids))
+    }));
+
+    stream.push(new gutil.File({
+      path: FILES_NAME +'.js',
+      contents: new Buffer(script)
+    }));
+
+    sprite.cheerio = $;
+    stream.push(sprite);
+    cb();
+	};
+
+	// подготовка к встраиванию свг
+	function svgPrepare(data) {
+    var svg = [], i, l;
+
+    data = data.replace(/'/g, "\\'");
+    data = data.replace(/>\s+</g, "><").trim();
+    l = Math.ceil(data.length / LINE_LENGTH);
+
+    for (i = 0; i < l; i++)
+    {
+      svg.push("'" + data.substr(i * LINE_LENGTH, LINE_LENGTH) + "'");
+    };
+
+    return svg.join('+\n');
+	};
+
+	// подготовка к встраиванию стилей
+	function stylesPrepare(data) {
+    var styles = [], i, l;
+
+    data = '<style>'+ data +'</style>';
+    data = data.replace(/\n/g, "");
+    data = data.replace(/\s+/g, " ");
+    data = data.replace(/'/g, "\\'");
+    data = data.replace(/>\s+</g, "><").trim();
+    l = Math.ceil(data.length / LINE_LENGTH);
+
+    for (i = 0; i < l; i++)
+    {
+      styles.push("'" + data.substr(i * LINE_LENGTH, LINE_LENGTH) + "'");
+    };
+
+    return styles.join('+\n');
+	};
+
+	// подготовка демонстрационного файла
+  function demoPrepare(ids) {
+    var result =
+    '<!DOCTYPE html>'+
+      '<html>'+
+        '<head>'+
+          '<meta charset="UTF-8">'+
+          '<title>Icons preview</title>'+
+          '<script src="icons.js"></script>'+
+          '<style>html {font-family: sans-serif;} .Preview {display: inline-block; margin: 1em; text-align: center; vertical-align: top;}</style>'+
+        '</head>'+
+        '<body>';
+
+    for (var id in ids) {
+      result += '<div class="Preview"><div data-icon="'+ id.replace('icon-', '') +'"></div><div class="Preview__label">'+ id.replace('icon-', '') +'</div></div>';
+    };
+    result += '</body></html>';
+
+    return result;
+  };
 
   return stream;
 };

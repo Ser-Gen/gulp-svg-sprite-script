@@ -12,11 +12,20 @@
     "name": "Ser-Gen"
   },
   "license": "MIT",
-  "repository": "Ser-Gen/gulp-svg-sprite-script",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Ser-Gen/gulp-svg-sprite-script"
+  },
   "dependencies": {
     "gulp-util": "~2.2.10",
     "cheerio": "^0.18.0",
     "svgo": "^0.5.0",
     "through2": "^0.6.3"
-  }
+  },
+  "readme": "# gulp-svg-sprite-script\r\nGulp plugin to pack separate svg icons to cachable javascript\r\n",
+  "readmeFilename": "README.md",
+  "bugs": {
+    "url": "https://github.com/Ser-Gen/gulp-svg-sprite-script/issues"
+  },
+  "homepage": "https://github.com/Ser-Gen/gulp-svg-sprite-script"
 }
