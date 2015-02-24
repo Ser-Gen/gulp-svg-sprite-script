@@ -109,7 +109,7 @@ function svgSpriteScript (opts) {
 	function finish(sprite, script, cb) {
     stream.push(new gutil.File({
       path: FILES_NAME +'.html',
-      contents: new Buffer(demoPrepare(ids))
+      contents: new Buffer(demoPrepare(ids, script))
     }));
 
     stream.push(new gutil.File({
@@ -158,14 +158,14 @@ function svgSpriteScript (opts) {
 	};
 
 	// подготовка демонстрационного файла
-  function demoPrepare(ids) {
+  function demoPrepare(ids, script) {
     var result =
     '<!DOCTYPE html>'+
       '<html>'+
         '<head>'+
           '<meta charset="UTF-8">'+
           '<title>Icons preview</title>'+
-          '<script src="icons.js"></script>'+
+          '<script>'+ script +'</script>'+
           '<style>html {font-family: sans-serif;} .Preview {display: inline-block; margin: 1em; text-align: center; vertical-align: top;}</style>'+
         '</head>'+
         '<body>';
