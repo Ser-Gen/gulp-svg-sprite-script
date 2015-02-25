@@ -1,28 +1,41 @@
 /*
  * Licensed under the MIT License: http://www.opensource.org/licenses/mit-license.php
- * Most of all script copyright 2014-2015 Alexander Madyankin <alexander@madyankin.name>, Roman Shamin <al4emist.artway@gmail.com>
+ * Copyright 2014-2015 Alexander Madyankin <alexander@madyankin.name>, Roman Shamin <al4emist.artway@gmail.com>, Sergei Vasilev <sergen-vas@yandex.ru>
  */
 
 (function(document){
   "use strict";
 
   function renderData() {
-    var DATA = %SVG_SPRITE% +
-    %STYLE%;
-    document.querySelector("body").insertAdjacentHTML("afterbegin", DATA);
-  }
+    var SVG = %SVG_SPRITE%;
+    var STYLE = %STYLE%;
+
+    document.querySelector("head").insertAdjacentHTML("afterbegin", STYLE);
+    document.querySelector("body").insertAdjacentHTML("afterbegin", SVG);
+  };
+
+  function mods(mod) {
+    var mods = mod.split(',');
+    var result = "";
+
+    for (var i = 0; i < mods.length; i++) {
+      result += " icon--"+ mods[i];
+    };
+    
+    return result;
+  };
 
   function icon(name, options) {
     var options = options || {};
-    var size    = options.size ? "icon--" + options.size : "";
-    var klass   = "icon icon--" + name + " " + size + " " + (options['class'] || "");
+    var mod    = options.mod ? mods(options.mod) : "";
+    var klass   = "icon icon--"+ name +" "+ mod +" "+ (options['class'] || "");
 
 
-    var icon =  "<svg class='icon__cnt'>" +
-                  "<use xlink:href='#icon-" + name + "' />" +
+    var icon =  "<svg class='icon__cnt'>"+
+                  "<use xlink:href='#icon-"+ name +"' />"+
                 "</svg>";
 
-    var html =  "<div class='" + klass + "'>" +
+    var html =  "<div class='" + klass + "'>"+
                   wrapSpinner(icon, klass) +
                 "</div>";
 
@@ -31,7 +44,7 @@
 
   function wrapSpinner(html, klass) {
     if (klass.indexOf("spinner") > -1) {
-      return "<div class='icon__spinner'>" + html + "</div>";
+      return "<div class='icon__spinner'>"+ html +"</div>";
     } else {
       return html;
     };
@@ -46,7 +59,7 @@
       var name        = currentIcon.getAttribute("data-icon");
       var options = {
         'class':  currentIcon.className,
-        size:   currentIcon.getAttribute("data-size")
+        mod:   currentIcon.getAttribute("data-mod")
       };
 
       currentIcon.insertAdjacentHTML("beforebegin", icon(name, options));
