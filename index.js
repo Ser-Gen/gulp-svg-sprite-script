@@ -105,8 +105,8 @@ function svgSpriteScript (opts) {
     }
   );
 
-	// финальное создание файлов и окончание работы задачи
-	function finish(sprite, script, cb) {
+  // финальное создание файлов и окончание работы задачи
+  function finish(sprite, script, cb) {
     stream.push(new gutil.File({
       path: FILES_NAME +'.html',
       contents: new Buffer(demoPrepare(ids, script))
@@ -120,10 +120,10 @@ function svgSpriteScript (opts) {
     sprite.cheerio = $;
     stream.push(sprite);
     cb();
-	};
+  };
 
-	// подготовка к встраиванию свг
-	function svgPrepare(data) {
+  // подготовка к встраиванию свг
+  function svgPrepare(data) {
     var svg = [], i, l;
 
     data = data.replace(/'/g, "\\'");
@@ -136,10 +136,10 @@ function svgSpriteScript (opts) {
     };
 
     return svg.join('+\n');
-	};
+  };
 
-	// подготовка к встраиванию стилей
-	function stylesPrepare(data) {
+  // подготовка к встраиванию стилей
+  function stylesPrepare(data) {
     var styles = [], i, l;
 
     data = '<style>'+ data +'</style>';
@@ -155,9 +155,9 @@ function svgSpriteScript (opts) {
     };
 
     return styles.join('+\n');
-	};
+  };
 
-	// подготовка демонстрационного файла
+  // подготовка демонстрационного файла
   function demoPrepare(ids, script) {
     var result =
     '<!DOCTYPE html>'+
