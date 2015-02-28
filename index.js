@@ -45,12 +45,10 @@ function svgSpriteScript (opts) {
       file.path = 'icon-'+ path.basename(file.path);
 
       svgo.optimize(String(file.contents), function(result) {
-        file.contents = new Buffer(result.data);
+        if (!file.cheerio) {
+          file.cheerio = cheerio.load(new Buffer(result.data), { xmlMode: true });
+        };
       });
-
-      if (!file.cheerio) {
-        file.cheerio = cheerio.load(file.contents.toString(), { xmlMode: true });
-      };
 
       var svg = file.cheerio('svg');
       var idAttr = path.basename(file.relative, path.extname(file.relative));
@@ -75,7 +73,7 @@ function svgSpriteScript (opts) {
     },
 
     function flush (cb) {
-      var svg = $.html();
+      var svg = closeTags($.html());
       var sprite = new gutil.File({
         path: FILES_NAME +'.svg',
         contents: new Buffer(svg)
@@ -176,6 +174,18 @@ function svgSpriteScript (opts) {
     result += '</body></html>';
 
     return result;
+  };
+
+  // добавление закрывающего тега для самозакрывающихся
+  function closeTags(data) {
+    var split = data.split("/>");
+    var result = "";
+
+    for (var i = 0; i < split.length - 1;i++) {
+      var edsplit = split[i].split("<");
+      result += split[i] + "></" + edsplit[edsplit.length - 1].split(" ")[0] + ">";
+    };
+    return result + split[split.length - 1];
   };
 
   return stream;
